@@ -1,25 +1,34 @@
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use std::str::from_utf8;
 
 const MEM_LEN: usize = 4_096;
 
 static mut WRITE_BUF: [u8; MEM_LEN] = [0u8; MEM_LEN];
 
-#[wasm_bindgen]
-pub fn get_ptr() -> *const u8 {
-    unsafe {
-        WRITE_BUF.as_ptr()
+#[derive(Serialize, Deserialize)]
+pub struct LogLine {
+    pub message: String,
+    // more fields
+}
+
+impl LogLine {
+    pub fn new(message: String) -> Self {
+        LogLine { message }
     }
 }
 
-pub fn get_string() -> String {
+#[wasm_bindgen]
+pub fn get_ptr() -> *const u8 {
+    unsafe { WRITE_BUF.as_ptr() }
+}
+
+pub fn get_log_line() -> Result<LogLine> {
     unsafe {
-        let mut len: u16 = WRITE_BUF[0] as u16;
-        len <<= 8;
-        len += WRITE_BUF[1] as u16;
+        let len: u16 = u16::from_le_bytes([WRITE_BUF[0], WRITE_BUF[1]]);
         if len > MEM_LEN as u16 - 2 {
-            panic!("This string is too long");
+            panic!("This object is too long");
         }
-        from_utf8(&WRITE_BUF[0..len as usize]).unwrap().to_string()
+        Ok(bincode::deserialize(&WRITE_BUF[2..len as usize + 2])?)
     }
 }

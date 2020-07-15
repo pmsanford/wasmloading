@@ -10,3 +10,4 @@ edition = "2018"
 wasmer-runtime = "0.17.1"
 shared = { path = "../shared" }
 anyhow = "1.0.31"
+bincode = "1.3.1"

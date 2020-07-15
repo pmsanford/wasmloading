@@ -1,4 +1,5 @@
 use anyhow::{Error, Result};
+use shared::LogLine;
 use std::cell::Cell;
 use std::env::args;
 use std::fs::File;
@@ -23,6 +24,19 @@ impl<'a> Plugin {
         let ptr = self.mem_ptr()?;
         ptr.deref(mem, start, len)
             .ok_or_else(|| Error::msg("No memory!"))
+    }
+
+    pub fn set_log_line(&self, ll: LogLine) -> Result<()> {
+        let encoded: Vec<u8> = bincode::serialize(&ll)?;
+        let memory = self.memory_cells(0, encoded.len() as u32 + 2)?;
+        let len = (encoded.len() as u16).to_le_bytes();
+        memory[0].set(len[0]);
+        memory[1].set(len[1]);
+        for (i, b) in encoded.into_iter().enumerate() {
+            memory[i + 2].set(b);
+        }
+
+        Ok(())
     }
 
     pub fn memory_string(&self, len: u32) -> Result<String> {
@@ -62,19 +76,21 @@ fn main() -> Result<()> {
     println!("Setting memory to {}", val);
 
     let start = Instant::now();
-    let wr = plugin.memory_cells(0, 1_024)?;
 
-    wr[0].set(0);
-    wr[1].set(val.len() as u8);
+    plugin.set_log_line(LogLine {
+        message: val.clone(),
+    })?;
 
-    for (i, b) in val.bytes().enumerate() {
-        wr[i + 2].set(b);
-    }
     let done = Instant::now();
     println!(
         "Memory initialization took {} ms",
         (done - start).as_millis()
     );
+
+    let test: Func<(), u8> = plugin.instance.exports.get("test_get_line")?;
+    if test.call().unwrap() > 0 {
+        return Err(Error::msg("Couldn't deserialize on wasm side!"));
+    }
 
     let start = Instant::now();
     let should_filter: Func<(), u8> = plugin.instance.exports.get("should_filter")?;

@@ -24,11 +24,5 @@ pub fn get_ptr() -> *const u8 {
 }
 
 pub fn get_log_line() -> Result<LogLine> {
-    unsafe {
-        let len: u16 = u16::from_le_bytes([WRITE_BUF[0], WRITE_BUF[1]]);
-        if len > MEM_LEN as u16 - 2 {
-            panic!("This object is too long");
-        }
-        Ok(bincode::deserialize(&WRITE_BUF[2..len as usize + 2])?)
-    }
+    unsafe { Ok(bincode::deserialize(&WRITE_BUF[..])?) }
 }

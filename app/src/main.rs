@@ -29,11 +29,8 @@ impl<'a> Plugin {
     pub fn set_log_line(&self, ll: LogLine) -> Result<()> {
         let encoded: Vec<u8> = bincode::serialize(&ll)?;
         let memory = self.memory_cells(0, encoded.len() as u32 + 2)?;
-        let len = (encoded.len() as u16).to_le_bytes();
-        memory[0].set(len[0]);
-        memory[1].set(len[1]);
         for (i, b) in encoded.into_iter().enumerate() {
-            memory[i + 2].set(b);
+            memory[i].set(b);
         }
 
         Ok(())

@@ -1,0 +1,5 @@
+[workspace]
+members = ["app", "shared", "plugin"]
+
+[profile.release.package.plugin]
+opt-level = "s"
